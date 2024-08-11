@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cool.admin.mapper.MsgUserMapper">
+
+    <select id="getMsg" resultType="entity.MsgUser">
+        SELECT `user`.nickname,`user`.avatar,message.msg_id,message.user_id,message.meeting_id,message.content,message.sendTime
+        FROM message
+                 INNER JOIN `user` ON message.user_id = `user`.id  ${ew.customSqlSegment}
+    </select>
+</mapper>

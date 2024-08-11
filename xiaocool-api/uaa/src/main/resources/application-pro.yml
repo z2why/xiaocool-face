@@ -1,0 +1,144 @@
+#application.yml
+server:
+  port: 3080
+  ssl:
+    key-store: /app/xx.jks  # 指向容器内的JKS文件路径
+    key-store-password: xx
+    key-store-type: JKS
+    enabled: true
+
+spring:
+  application:
+    name: uaa
+
+
+  # 数据库配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${SPRING-CLOUD-MYSQL-HOST}/${SPRING-CLOUD-DB-NAME}?useUnicode=true&characterEncoding=utf-8&allowMultiQueries=true&useSSL=false&serverTimezone=GMT%2b8
+    username: root
+    password: Yys12300
+
+  #redis相关基础配置
+  redis:
+    # Redis数据库索引（默认为0）
+    database: 1
+    password: ${SPRING-CLOUD-REDIS-PWD}
+    port: 6379
+    host: ${SPRING-CLOUD-REDIS-HOST}
+    # Redis服务器连接密码（默认为空）
+    # password:
+    # 连接超时时间（毫秒）
+    timeout: 3000ms
+    lettuce:
+      pool:
+        # 连接池最大连接数
+        max-active: 200
+        # 连接池最大阻塞等待时间（使用负值表示没有限制）
+        max-wait: -1ms
+        # 连接池中的最大空闲连接
+        max-idle: 10
+        # 连接池中的最小空闲连接
+        min-idle: 0
+
+# Sa-Token 配置
+sa-token:
+  # token 名称（同时也是 cookie 名称）
+  token-name: token
+  # token 有效期（单位：秒） 默认30天，-1 代表永久有效
+  timeout: 72000
+  #代表最低活跃频率，单位/秒，例如将其配置为 1800 (30分钟)，代表用户如果30分钟无操作，则此Token会立即过期（被冻结，但不会删除掉）。
+  active-timeout: 3600
+  # token 风格（默认可取值：uuid、simple-uuid、random-32、random-64、random-128、tik）
+  token-style: simple-uuid
+  # OAuth2.0 配置
+  #  # 是否从cookie中读取token
+  is-read-cookie: false
+  #  # 是否从head中读取token
+  is-read-header: true
+  #  #能否写入到heard中
+  is-write-header: true
+
+
+  oauth2:
+    # 是否打开模式：授权码（Authorization Code）
+    is-code: true
+    # 是否打开模式：隐藏式（Implicit）
+    is-implicit: true
+    # 是否打开模式：密码式（Password）
+    is-password: true
+    # 是否打开模式：凭证式（Client Credentials）
+    is-client: false
+    # 是否在每次 Refresh-Token 刷新 Access-Token 时，产生一个新的 Refresh-Token
+    isNewRefresh: false
+    # Code授权码 保存的时间（单位：秒） 默认五分钟
+    codeTimeout: 300
+    # Access-Token 保存的时间（单位：秒）默认两个小时
+    accessTokenTimeout: 7200
+    # Refresh-Token 保存的时间（单位：秒） 默认30 天
+    refreshTokenTimeout: 2592000
+    # Client-Token 保存的时间（单位：秒） 默认两个小时
+    clientTokenTimeout: 7200
+    # Past-Client-Token 保存的时间（单位：秒） ，默认为-1，代表延续 Client-Token 的有效时间
+    pastClientTokenTimeout: 7200
+  jwt-secret-key: 
+
+
+
+
+#mybatis-plus的相关依赖
+mybatis-plus:
+  global-config:
+    banner: off #关闭mybatis-plus的启动动画
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl #打印sql语句
+  mapper-locations: classpath:mapper/*.xml
+
+
+gitee:
+    client:
+      id: 
+      Secret: 
+    redirect:
+      uri: https://${SPRING-CLOUD-DOMAIN-NAME}/uaa/oauth2/gitee/callback
+
+wechat:
+  app-id: weixin
+  app-secret: weixin
+  redirect-uri: https://${SPRING-CLOUD-DOMAIN-NAME}/uaa/oauth2/wechat/callback
+
+captcha:
+    email:
+      from: xxxx<xx@xx.com>
+      password:  # 这里我随便填的
+      host: smtp.163.com
+      port: 465
+      user: xxxx@163.com
+      expire-time: 300 # 300秒
+
+qq:
+  app-id: 
+  app-key: 
+  redirect-uri: 
+
+
+
+# 腾讯云短信服务配置
+sms-config:
+  # 腾讯云账户密钥对 secretId 和 secretKey
+  secretId: 
+  secretKey: 
+  # 短信应用appId和appKey
+  appId: 
+  appKey: 
+  # 签名
+  smsSign: 
+  # 过期时间
+  expireTime: 6  # 6min
+  # redis存储前缀
+  phonePrefix: captcha-sms-
+  # 模板id
+  templateIds:
+    code:
+      login: 
+      register: 

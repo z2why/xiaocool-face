@@ -1,0 +1,84 @@
+server:
+  port: 9091
+
+  ssl:
+      key-store: xx.p12
+      key-store-password: 
+      key-store-type: PKCS12
+      enabled: true
+
+spring:
+  application:
+    name: gateway-service
+  main:
+    banner-mode: off
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/meeting?useUnicode=true&characterEncoding=utf-8&allowMultiQueries=true&useSSL=false&serverTimezone=GMT%2b8
+    username: root
+    password: #数据库密码
+
+  cloud:
+    sentinel:
+      eager: true
+      transport:
+        port: 8719
+        dashboard: localhost:8070
+
+    gateway:
+      discovery:
+        locator:
+          enabled: true # gateway 可以从 nacos 发现微服务
+
+      httpclient:
+        ssl:
+          useInsecureTrustManager: true # 仅用于测试环境，生产环境请使用可信的证书
+
+      routes:
+       - id: service
+         uri: lb://service
+         predicates:
+           - Path=/service/**
+       - id: uaa
+         uri: lb://uaa
+         predicates:
+           - Path=/uaa/**
+
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        ## yml文件中存在特殊字符，必须用单引号包含，否则启动报错
+        include: '*'
+
+#sa-token相关配置
+sa-token:
+  # token 名称（同时也是 cookie 名称）
+  token-name: token
+  # token 有效期（单位：秒） 默认30天，-1 代表永久有效
+  timeout: 72000
+  #代表最低活跃频率，单位/秒，例如将其配置为 1800 (30分钟)，代表用户如果30分钟无操作，则此Token会立即过期（被冻结，但不会删除掉）。
+  active-timeout: 3600
+  # 是否允许同一账号多地同时登录 （为 true 时允许一起登录, 为 false 时新登录挤掉旧登录）
+  is-concurrent: true
+  # 在多人登录同一账号时，是否共用一个 token （为 true 时所有登录共用一个 token, 为 false 时每次登录新建一个 token）
+  is-share: false
+  # token 风格（默认可取值：uuid、simple-uuid、random-32、random-64、random-128、tik）
+  token-style: simple-uuid
+  #  # 是否从cookie中读取token
+  is-read-cookie: false
+  #  # 是否从head中读取token
+  is-read-header: true
+  #  #能否写入到heard中
+  is-write-header: true
+  #是否输出操作日志
+  is-log: true
+  #是否开启sa-token的启动动画
+  is-print: off #关闭控制台启动动画
+  # jwt秘钥
+  jwt-secret-key: #自己随便写一个
+
+
+

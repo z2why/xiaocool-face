@@ -1,0 +1,19 @@
+spring:
+  cloud:
+    nacos:
+      username: ${NACOS-USERNAME}
+      password: ${NACOS-PWD}
+      discovery:
+        ip: ${SPRING-CLOUD-NACOS-IP}
+        server-addr: ${SPRING-CLOUD-NACOS-ADDR} #Nacos服务注册中心地址
+        #namespace: dab22371-b924-4d2c-969f-f28e39e484b6
+        username: ${NACOS-USERNAME}
+        password: ${NACOS-PWD}
+      config:
+        server-addr: ${SPRING-CLOUD-NACOS-ADDR} #Nacos作为配置中心地址
+        file-extension: yml #指定yaml格式的配置
+        refresh-enabled: true #动态刷新配置
+        #namespace: dev
+        #group: ACCESS_GROUP
+        username: ${NACOS-USERNAME}
+        password: ${NACOS-PWD}

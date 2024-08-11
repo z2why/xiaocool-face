@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cool.admin.mapper.MeetingMapper">
+    <select id="findPage" resultType="entity.Meeting"></select>
+
+
+    <select id="selectUserMeetingPage" resultType="entity.UserMeeting">
+        SELECT m.*,ud.participate_status,ud.sign_in_date,ud.sign_out_date,ud.check_status,ud.user_id,ud.id as uid,ud.meeting_id,ud.sign_adress,ud.supplementary_sign
+        FROM meeting m
+        LEFT JOIN user_detail ud
+        ON ud.meeting_id = m.id ${ew.customSqlSegment}
+    </select>
+
+
+    <select id="selectSignMeetingPage" resultType="entity.UserMeeting">
+        SELECT *
+        FROM meeting
+        ${ew.customSqlSegment}
+    </select>
+
+
+</mapper>

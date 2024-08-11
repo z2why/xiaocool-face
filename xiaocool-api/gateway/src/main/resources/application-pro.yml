@@ -1,0 +1,88 @@
+server:
+  port: 9091
+  ssl:
+    key-store: /app/xx.jks  # 指向容器内的JKS文件路径
+    key-store-password: 
+    key-store-type: JKS
+    enabled: true
+
+spring:
+  application:
+    name: gateway-service
+  main:
+    banner-mode: off
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${SPRING-CLOUD-MYSQL-HOST}/${SPRING-CLOUD-DB-NAME}?useUnicode=true&characterEncoding=utf-8&allowMultiQueries=true&useSSL=false&serverTimezone=GMT%2b8
+    username: root
+    password: Yys12300
+
+  #redis相关基础配置
+  redis:
+    # Redis数据库索引（默认为0）
+    database: 1
+    password: ${SPRING-CLOUD-REDIS-PWD}
+    port: 6379
+    host: ${SPRING-CLOUD-REDIS-HOST}
+    # Redis服务器连接密码（默认为空）
+    # password:
+    # 连接超时时间（毫秒）
+    timeout: 1000ms
+    lettuce:
+      pool:
+        # 连接池最大连接数
+        max-active: 200
+        # 连接池最大阻塞等待时间（使用负值表示没有限制）
+        max-wait: -1ms
+        # 连接池中的最大空闲连接
+        max-idle: 10
+        # 连接池中的最小空闲连接
+        min-idle: 0
+      cluster:
+       refresh:
+        adaptive: true
+        period: 20
+
+  cloud:
+    sentinel:
+      eager: true
+      transport:
+        port: 8719
+        dashboard: ${SPRING-CLOUD-SENTINEL-DASHBOARD}
+
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+      routes:
+        - id: service
+          uri: lb://service
+          predicates:
+            - Path=/service/**
+        - id: uaa
+          uri: lb://uaa
+          predicates:
+            - Path=/uaa/**
+    inetutils:
+      preferred-networks:
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+
+sa-token:
+  token-name: token
+  timeout: 72000
+  active-timeout: 3600
+  is-concurrent: true
+  is-share: false
+  token-style: simple-uuid
+  is-read-cookie: false
+  is-read-header: true
+  is-write-header: true
+  is-log: true
+  is-print: off
+  jwt-secret-key: #自己随便填一个

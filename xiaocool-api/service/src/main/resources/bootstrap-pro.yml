@@ -1,0 +1,19 @@
+spring:
+  cloud:
+    nacos:
+      username: ${NACOS-USERNAME}
+      password: ${NACOS-PWD}
+      discovery:
+        ip: ${SPRING-CLOUD-NACOS-IP}
+        server-addr: ${SPRING-CLOUD-NACOS-ADDR}
+        secure: true  # 指示服务是通过 HTTPS 访问的
+        username: ${NACOS-USERNAME}
+        password: ${NACOS-PWD}
+      config:
+        server-addr: ${SPRING-CLOUD-NACOS-ADDR} #Nacos作为配置中心地址
+        file-extension: yml #指定yaml格式的配置
+        refresh-enabled: true #动态刷新配置
+        username: ${NACOS-USERNAME}
+        password: ${NACOS-PWD}
+
+

@@ -1,0 +1,3 @@
+spring:
+  profiles:
+    active: #这里如果是生产环境就是pro如果是本地测试环境就是dev，对应application-pro/dev.yaml
