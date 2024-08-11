@@ -15,7 +15,7 @@ from utils.logger import setup_logger
 
 logger = setup_logger('server')
 
-redis_client = redis.StrictRedis(host='124.222.32.229', port=6379,password='Yys12300', db=0, decode_responses=True)
+redis_client = redis.StrictRedis(host='localhost', port=6379, db=0, decode_responses=True)
 
 # 文档配置
 app = FastAPI(
