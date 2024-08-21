@@ -121,6 +121,14 @@ qq:
   app-key: 
   redirect-uri: 
 
+alipay:
+  app-id: 
+  redirect-uri: 
+  merchant-private-key:
+  gateway: 
+  appCertPath: 
+  alipayCertPath: 
+  rootCertPath: 
 
 
 # 腾讯云短信服务配置
