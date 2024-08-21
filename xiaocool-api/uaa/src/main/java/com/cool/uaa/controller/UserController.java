@@ -127,15 +127,9 @@ public class UserController {
 
 
     @GetMapping("logout")
-    public Result logout(Long id) {
+    public Result logout(String id) {
         //强制下线
         StpUtil.logout(id);                         // 强制指定账号注销下线
-//        StpUtil.logout(10001, "PC");              // 强制指定账号指定端注销下线
-//        StpUtil.logoutByTokenValue("token");      // 强制指定 Token 注销下线
-        //踢人下线
-//        StpUtil.kickout(10001);                    // 将指定账号踢下线
-//        StpUtil.kickout(10001, "PC");              // 将指定账号指定端踢下线
-//        StpUtil.kickoutByTokenValue("token");      // 将指定 Token 踢下线
         return Result.success();
     }
 

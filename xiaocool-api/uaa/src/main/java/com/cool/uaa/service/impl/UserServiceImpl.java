@@ -16,6 +16,7 @@ import dto.UserDTO;
 import entity.Oauth2;
 import entity.User;
 import exception.BaseException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
@@ -26,7 +27,7 @@ import java.util.Objects;
 
 import static org.apache.xmlbeans.impl.common.XBeanDebug.LOG;
 
-
+@Slf4j
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
@@ -39,76 +40,107 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public Result doLogin(UserDTO userDTO){
-        if (userDTO.getLoginType().equals("usernameLogin")){
-            User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, userDTO.getUsername()));
-            if (user == null || !Objects.equals(user.getPassword(),userDTO.getPassword() )){
-                return Result.error(Constants.CODE_600, "用户名或密码错误");
-            }
-            userDTO.setAvatar(user.getAvatar());
-            userDTO.setUserId(user.getId());
-            userDTO.setName(user.getName());
-            userDTO.setNickname(user.getNickname());
-            //先把之前那些token全都注销了
-            StpUtil.logout(user.getUsername());
-            StpUtil.login(user.getUsername());
-        }
-        if (userDTO.getLoginType().equals("email")){
-            User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getEmail, userDTO.getEmail()));
-            if (user!=null){
-                //先把之前那些token全都注销了
-                StpUtil.logout(user.getUsername());
-                StpUtil.login(user.getUsername());
-                userDTO.setUserId(user.getId());
-                BeanUtil.copyProperties(user, userDTO, true);
-
-            }
-            else {
-                //通过邮箱注册
-                userDTO.setUsername(userDTO.getEmail());
-                user=register(userDTO);
-                userDTO.setUserId(user.getId());
-                BeanUtil.copyProperties(user, userDTO, true);
-
-            }
-        }
-        if (userDTO.getLoginType().equals("phone")){
-            User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getTelephone, userDTO.getTelephone()));
-            if (user!=null){
-                //先把之前那些token全都注销了
-                StpUtil.logout(user.getUsername());
-                StpUtil.login(user.getUsername());
-                userDTO.setUserId(user.getId());
-                BeanUtil.copyProperties(user, userDTO, true);
-
-            }
-            else {
-                return Result.error(Constants.CODE_600, "用户还未注册!请先完成注册");
-            }
-        }
-
-        if (userDTO.getLoginType().equals("gitee")){
-            Oauth2 oauth2=oauth2Mapper.selectOne(new LambdaQueryWrapper<Oauth2>().eq(Oauth2::getOpenId,userDTO.getOpenId()));
-            if (oauth2!=null){
-                User user=userMapper.selectById(oauth2.getUserId());
-                userDTO.setUsername(user.getUsername());
+        User user=new User();
+        switch (userDTO.getLoginType()){
+            case "usernameLogin":
+                    user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, userDTO.getUsername()));
+                if (user == null || !Objects.equals(user.getPassword(),userDTO.getPassword() )){
+                    return Result.error(Constants.CODE_600, "用户名或密码错误");
+                }
                 userDTO.setAvatar(user.getAvatar());
                 userDTO.setUserId(user.getId());
                 userDTO.setName(user.getName());
                 userDTO.setNickname(user.getNickname());
-            Map<String, Object> userinfo=new HashMap<>();
-            userinfo.put("user",userDTO);
+                //先把之前那些token全都注销了
+//            StpUtil.logout(user.getUsername());
 
-            //先把之前那些token全都注销了
-            StpUtil.logout(user.getUsername());
-            StpUtil.login(user.getUsername(), SaLoginConfig.setExtraData(userinfo));
-            }
-            else {
-                userDTO= findUse(userDTO);
-            }
+                // 检查用户是否已经登录
+                if (!StpUtil.isLogin()) {
+                    // 用户未登录，执行登录操作
+                    StpUtil.login(user.getUsername());
+                }
+                break;
+
+            case "email":
+                user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getEmail, userDTO.getEmail()));
+                if (user!=null){
+                    //先把之前那些token全都注销了
+//                StpUtil.logout(user.getUsername());
+                    if (!StpUtil.isLogin()) {
+                        // 用户未登录，执行登录操作
+                        StpUtil.login(user.getUsername());
+                    }
+                    userDTO.setUserId(user.getId());
+                    BeanUtil.copyProperties(user, userDTO, true);
+
+                }
+                else {
+                    //通过邮箱注册
+                    userDTO.setUsername(userDTO.getEmail());
+                    user=register(userDTO);
+                    userDTO.setUserId(user.getId());
+                    BeanUtil.copyProperties(user, userDTO, true);
+
+                }
+                break;
+
+            case "phone":
+                user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getTelephone, userDTO.getTelephone()));
+                if (user!=null){
+                    //先把之前那些token全都注销了
+//                StpUtil.logout(user.getUsername());
+                    if (!StpUtil.isLogin()) {
+                        // 用户未登录，执行登录操作
+                        StpUtil.login(user.getUsername());
+                    }
+                    userDTO.setUserId(user.getId());
+                    BeanUtil.copyProperties(user, userDTO, true);
+
+                }
+                else {
+                    return Result.error(Constants.CODE_600, "用户还未注册!请先完成注册");
+                }
+                break;
+            case "gitee":
+            case "QQ":
+            case "Alipay":
+            default:
+                Oauth2 oauth2=oauth2Mapper.selectOne(new LambdaQueryWrapper<Oauth2>().eq(Oauth2::getOpenId,userDTO.getOpenId()));
+                if (oauth2!=null){
+                    user=userMapper.selectById(oauth2.getUserId());
+                    userDTO.setUsername(user.getUsername());
+                    userDTO.setAvatar(user.getAvatar());
+                    userDTO.setUserId(user.getId());
+                    userDTO.setName(user.getName());
+                    userDTO.setNickname(user.getNickname());
+                    Map<String, Object> userinfo=new HashMap<>();
+                    userinfo.put("user",userDTO);
+
+                    //先把之前那些token全都注销了
+//            StpUtil.logout(user.getUsername());
+
+                    if (!StpUtil.isLogin()) {
+                        // 用户未登录，执行登录操作
+                        StpUtil.login(user.getUsername(), SaLoginConfig.setExtraData(userinfo));
+                    }
+                }
+                else {
+                    userDTO= findUse(userDTO);
+                    Map<String, Object> userinfo=new HashMap<>();
+                    userinfo.put("user",userDTO);
+                    if (!StpUtil.isLogin()) {
+                        // 用户未登录，执行登录操作
+                        StpUtil.login(userDTO.getUsername(), SaLoginConfig.setExtraData(userinfo));
+                    }
+                }
+                break;
         }
-
-        List<String> roleList = findRole(userDTO.getUsername());
-        StpUtil.getSession().set("roleList", roleList);
+        List<String> roleList = (List<String>)StpUtil.getSession().get("roleList");
+        log.info("权限为:{}",roleList);
+        if (roleList==null){
+            roleList = findRole(userDTO.getUsername());
+            StpUtil.getSession().set("roleList", roleList);
+        }
         userDTO.setRole(roleList);
         String token=StpUtil.getTokenValue();
         userDTO.setToken(token);
@@ -155,33 +187,45 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         return one;
     }
-
+    public UserDTO findUserToLogin(User user, UserDTO userDTO){
+        BeanUtil.copyProperties(user, userDTO, true);
+        Oauth2 oauth2=new Oauth2();
+        oauth2.setUserId(user.getId());
+        oauth2.setOpenId(userDTO.getOpenId());
+        oauth2.setClientName(userDTO.getLoginType());
+        oauth2Mapper.insert(oauth2);
+        Map<String, Object> userinfo=new HashMap<>();
+        userinfo.put("user",userDTO);
+        if (!StpUtil.isLogin()) {
+            // 用户未登录，执行登录操作
+            StpUtil.login(user.getUsername(), SaLoginConfig.setExtraData(userinfo));
+        }
+        return userDTO;
+    }
 
     //第三方登录，寻找user，可以通过手机号或者email等
     public UserDTO findUse(UserDTO userDTO){
             if (userDTO.getEmail()!=null){
                User user=userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getEmail, userDTO.getEmail()));
                 if (user!=null){
-                    userDTO.setUsername(user.getUsername());
-                    userDTO.setAvatar(user.getAvatar());
-                    userDTO.setUserId(user.getId());
-                    userDTO.setName(user.getName());
-                    userDTO.setNickname(user.getNickname());
-                    Oauth2 oauth2=new Oauth2();
-                    oauth2.setUserId(user.getId());
-                    oauth2.setOpenId(userDTO.getOpenId());
-                    oauth2.setClientName(userDTO.getLoginType());
-                    oauth2Mapper.insert(oauth2);
-                    Map<String, Object> userinfo=new HashMap<>();
-                    userinfo.put("user",userDTO);
-                    StpUtil.login(user.getUsername(), SaLoginConfig.setExtraData(userinfo));
-                    return userDTO;
+                    return findUserToLogin(user,userDTO);
+                }
+            }
+            else if (userDTO.getTelephone()!=null){
+                User user=userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getTelephone, userDTO.getTelephone()));
+                if (user!=null){
+                    return findUserToLogin(user,userDTO);
+                }
+            }
+            else {
+                User user=userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, userDTO.getUsername()));
+                if (user!=null){
+                    return findUserToLogin(user,userDTO);
                 }
             }
             //如果找不到，则注册一个新的账号
-
          register(userDTO);
-         Integer userId=getOne(new QueryWrapper<User>().eq("id",userDTO.getUsername())).getId();
+         Integer userId=getOne(new QueryWrapper<User>().eq("username",userDTO.getUsername())).getId();
          Oauth2 oauth2=new Oauth2();
          oauth2.setUserId(userId);
          oauth2.setOpenId(userDTO.getOpenId());

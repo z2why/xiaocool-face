@@ -44,6 +44,9 @@ public class OAuth2Controller {
     private QQServiceImpl qqService;
 
     @Autowired
+    private AlipayServiceImpl alipayService;
+
+    @Autowired
     private RedisUtils redisUtils;
 
 
@@ -63,11 +66,11 @@ public class OAuth2Controller {
                     return userService.doLogin(userDTO);
                 }
                 else {
-                    return Result.error(Constants.CODE_400, "验证码错误");
+                    return Result.error(Constants.CODE_400, "验证码错误或已过期");
                 }
             }
             else {
-                return Result.error(Constants.CODE_400, "验证码已过期");
+                return Result.error(Constants.CODE_400, "验证码错误或已过期");
             }
 
         }
@@ -76,10 +79,6 @@ public class OAuth2Controller {
     }
 
 
-    @GetMapping("/go")
-    public void GO(HttpServletResponse response) throws IOException {
-        response.sendRedirect("https://xiaoku.store/admin/user");
-    }
 
     @PostMapping("/captchaLogin")
     public Result CaptchaLogin(@RequestBody UserDTO userDTO,HttpServletResponse response) throws IOException {
@@ -115,10 +114,10 @@ public class OAuth2Controller {
             // 模拟使用 userService 处理用户信息
             UserDTO userDTO = new UserDTO();
             userDTO.setLoginType("gitee");
-            userDTO.setAvatar((String) userInfo.get("avatar_url"));
-            userDTO.setUsername((String) userInfo.get("login"));
-            userDTO.setEmail((String) userInfo.get("email"));
-            userDTO.setOpenId((Integer) userInfo.get("id"));
+            userDTO.setAvatar(String.valueOf(userInfo.get("avatar_url")));
+            userDTO.setUsername(String.valueOf(userInfo.get("login")));
+            userDTO.setEmail(String.valueOf(userInfo.get("email")));
+            userDTO.setOpenId(String.valueOf(userInfo.get("id")));
             userService.doLogin(userDTO);
             for (String role:userDTO.getRole()){
                 if (role.equals("admin")){
@@ -128,69 +127,89 @@ public class OAuth2Controller {
             }
             response.sendRedirect("https://xiaoku.store/AddMeeting?token="+StpUtil.getTokenValue());
         } catch (Exception e) {
-            throw new RuntimeException("Failed to get access token", e);
+            throw new RuntimeException("登录失败", e);
         }
     }
 
 
-    /**
-     * 微信模块
-     */
-    // 获取微信登录URL
-    @GetMapping("/authorize/wechat")
-    public String getWeChatLoginUrl() {
-        return weChatService.getWeChatLoginUrl();
-    }
-
-    // 微信回调
-    @GetMapping("/wechat/callback")
-    public String weChatCallback(@RequestParam String code) {
-        try {
-            JsonNode tokenResponse = weChatService.getAccessTokenAndOpenId(code);
-            String accessToken = tokenResponse.get("access_token").asText();
-            String openId = tokenResponse.get("openid").asText();
-
-            JsonNode userInfo = weChatService.getUserInfo(accessToken, openId);
-            String unionId = userInfo.get("unionid").asText();
-
-            // 这里可以根据unionId查询用户是否已存在，未存在则创建用户
-            StpUtil.login(unionId);
-
-            return "登录成功，Access Token: " + StpUtil.getTokenValue();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "登录失败";
-        }
-    }
 
     /**
      * QQ模块
      */
     // 获取QQ登录URL
     @GetMapping("/authorize/qq")
-    public String getQQLoginUrl() {
-        return qqService.getQQLoginUrl();
+    public void getQQLoginUrl(HttpServletResponse response) throws IOException {
+        String url = qqService.getQQLoginUrl();
+        response.sendRedirect(url);
     }
 
     // QQ回调
     @GetMapping("/qq/callback")
-    public String qqCallback(@RequestParam String code) {
+    public void qqCallback(@RequestParam("code") String code,
+                           HttpServletResponse response,
+                           HttpServletRequest request) {
         try {
             String accessToken = qqService.getAccessToken(code);
-            String openId = qqService.getOpenId(accessToken);
-
-            JsonNode userInfo = qqService.getUserInfo(accessToken, openId);
-            String unionId = userInfo.get("unionid").asText();
-
+            //获得qq号
+            JsonNode node = qqService.getOpenId(accessToken);
+            String openId= node.get("openid").asText();
+            String unionId= node.get("unionid").asText();
+            log.info("========openId:{}==========",openId);
+            log.info("========unionid:{}=========",unionId);
+            Map<String, Object> userInfo = qqService.getUserInfo(accessToken, openId);
+            UserDTO userDTO = new UserDTO();
+            userDTO.setLoginType("QQ");
+            userDTO.setAvatar(String.valueOf(userInfo.get("figureurl_qq_1")));
+            userDTO.setNickname(String.valueOf(userInfo.get("nickname")));
+            userDTO.setUsername(unionId.substring(4, 14));
+            userDTO.setOpenId(unionId);
             // 这里可以根据unionId查询用户是否已存在，未存在则创建用户
-            StpUtil.login(unionId);
-
-            return "登录成功，Access Token: " + StpUtil.getTokenValue();
+            userService.doLogin(userDTO);
+            for (String role:userDTO.getRole()){
+                if (role.equals("admin")){
+                    response.sendRedirect("https://xiaoku.store/admin/user?token="+StpUtil.getTokenValue());
+                    return;
+                }
+            }
+            response.sendRedirect("https://xiaoku.store/AddMeeting?token="+StpUtil.getTokenValue());
         } catch (Exception e) {
-            e.printStackTrace();
-            return "登录失败";
+            throw new RuntimeException("登录失败", e);
         }
     }
+
+
+
+//    支付宝
+       @GetMapping("/authorize/alipay")
+       public void alipayAuthorize(HttpServletResponse response) throws IOException {
+       String url = alipayService.getAuthorizationUrl();
+       response.sendRedirect(url);
+
+    }
+
+
+//      支付宝回调
+       @GetMapping("/alipay/callback")
+      public void AliPayCallback(@RequestParam("auth_code") String authCode,
+                       HttpServletResponse response,
+                       HttpServletRequest request) {
+    try {
+        String accessToken = alipayService.getAccessToken(authCode);
+        // 获取用户信息
+        UserDTO userDTO  = alipayService.getUserInfo(accessToken);
+        userService.doLogin(userDTO);
+        for (String role:userDTO.getRole()){
+            if (role.equals("admin")){
+                response.sendRedirect("https://xiaoku.store/admin/user?token="+StpUtil.getTokenValue());
+                return;
+            }
+        }
+        response.sendRedirect("https://xiaoku.store/AddMeeting?token="+StpUtil.getTokenValue());
+    } catch (Exception e) {
+        throw new RuntimeException("登录失败", e);
+    }
+}
+
 
     /**
      * 短信模块
@@ -244,11 +263,35 @@ public class OAuth2Controller {
         }
     }
 
+    /**
+     * 微信模块
+     */
+    // 获取微信登录URL
+    @GetMapping("/authorize/wechat")
+    public String getWeChatLoginUrl() {
+        return weChatService.getWeChatLoginUrl();
+    }
 
+    // 微信回调
+    @GetMapping("/wechat/callback")
+    public String weChatCallback(@RequestParam String code) {
+        try {
+            JsonNode tokenResponse = weChatService.getAccessTokenAndOpenId(code);
+            String accessToken = tokenResponse.get("access_token").asText();
+            String openId = tokenResponse.get("openid").asText();
 
+            JsonNode userInfo = weChatService.getUserInfo(accessToken, openId);
+            String unionId = userInfo.get("unionid").asText();
 
+            // 这里可以根据unionId查询用户是否已存在，未存在则创建用户
+            StpUtil.login(unionId);
 
-
+            return "登录成功，Access Token: " + StpUtil.getTokenValue();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "登录失败";
+        }
+    }
 
 
 
